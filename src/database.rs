@@ -31,7 +31,7 @@ impl Database {
 		conn.execute("
 			CREATE TABLE soc (
 				id              INTEGER PRIMARY KEY,
-				timediff_ns      INTEGER NOT NULL,
+				timediff_ns     INTEGER NOT NULL,
 				mn_state        INTEGER
 			)", &[]).unwrap();
 
@@ -39,43 +39,43 @@ impl Database {
 			CREATE TABLE pres (
 				id              INTEGER PRIMARY KEY,
 				node_id         INTEGER NOT NULL,
-				timediff_ns      INTEGER NOT NULL,
-				cn_state        INTEGER NOT NULL,
-				mn_state        INTEGER NOT NULL
+				timediff_ns     INTEGER NOT NULL,
+				cn_state        INTEGER,
+				mn_state        INTEGER
 			)", &[]).unwrap();
 
 		conn.execute("
 			CREATE TABLE ident (
 				id              INTEGER PRIMARY KEY,
 				node_id         INTEGER NOT NULL,
-				timediff_ns      INTEGER NOT NULL,
-				cn_state        INTEGER NOT NULL,
-				mn_state        INTEGER NOT NULL
+				timediff_ns     INTEGER NOT NULL,
+				cn_state        INTEGER,
+				mn_state        INTEGER
 			)", &[]).unwrap();
 
 		conn.execute("
 			CREATE TABLE status (
 				id              INTEGER PRIMARY KEY,
 				node_id         INTEGER NOT NULL,
-				timediff_ns      INTEGER NOT NULL,
-				cn_state        INTEGER NOT NULL,
-				mn_state        INTEGER NOT NULL
+				timediff_ns     INTEGER NOT NULL,
+				cn_state        INTEGER,
+				mn_state        INTEGER
 			)", &[]).unwrap();
 
 		conn.execute("
 			CREATE TABLE sdo (
 				id              INTEGER PRIMARY KEY,
 				node_id         INTEGER NOT NULL,
-				timediff_ns      INTEGER NOT NULL,
-				cn_state        INTEGER NOT NULL,
-				mn_state        INTEGER NOT NULL
+				timediff_ns     INTEGER NOT NULL,
+				cn_state        INTEGER,
+				mn_state        INTEGER
 			)", &[]).unwrap();
 
 		conn.execute("
 			CREATE TABLE other (
 				id              INTEGER PRIMARY KEY,
 				node_id         INTEGER NOT NULL,
-				timediff_ns      INTEGER NOT NULL,
+				timediff_ns     INTEGER NOT NULL,
 				cn_state        INTEGER,
 				mn_state        INTEGER
 			)", &[]).unwrap();
@@ -84,7 +84,7 @@ impl Database {
 	}
 
 	pub fn insert_soc(&self, timediff: Duration, mn_state: Option<NmtState>) {
-		info!("insert");
+		trace!("Insert SoC");
 		let ns = timediff.num_nanoseconds().expect("Timediff is too large to represent it as nanoseconds. Timediffs this lare probably mean an error.");
 		let state = match mn_state {
 			Some(s) => Some((s as u8) as i64),
@@ -95,6 +95,28 @@ impl Database {
 			INSERT INTO soc (timediff_ns, mn_state)
 			VALUES ($1, $2)",
 		&[&(ns as i64), &state]).unwrap();
+	}
+
+	pub fn insert_pres(&self, node_id: u8, timediff: Duration, mn_state: Option<NmtState>, cn_state: Option<NmtState>) {
+
+		trace!("Insert PREs");
+		let ns = timediff.num_nanoseconds().expect("Timediff is too large to represent it as nanoseconds. Timediffs this lare probably mean an error.");
+
+		let cn_state_u8 = match cn_state {
+			Some(s) => Some((s as u8) as i64),
+			None => None
+		};
+		
+		let mn_state_u8 = match mn_state {
+			Some(s) => Some((s as u8) as i64),
+			None => None
+		};
+
+		self.connection.execute("
+			INSERT INTO pres (node_id, timediff_ns, cn_state, mn_state)
+			VALUES ($1, $2, $3, $4)",
+		&[&(node_id as i64), &(ns as i64), &cn_state_u8, &mn_state_u8]).unwrap();
+
 	}
 
 	// returns (min,max,avg,jitter_abs,jitter_rel)

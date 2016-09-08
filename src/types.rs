@@ -16,7 +16,7 @@
 #![allow(dead_code)]
 
 enum_from_primitive! {
-	#[derive(Debug, PartialEq, Clone)]
+	#[derive(Debug, PartialEq, Clone, Copy)]
 	#[repr(u8)]
 	pub enum PacketType {
 		SoC = 0x01,
@@ -28,7 +28,7 @@ enum_from_primitive! {
 }
 
 enum_from_primitive! {
-	#[derive(Debug, PartialEq, Clone)]
+	#[derive(Debug, PartialEq, Clone, Copy)]
 	#[repr(u8)]
 	pub enum ServiceId {
 		Ident = 0x01,
@@ -39,7 +39,7 @@ enum_from_primitive! {
 }
 
 enum_from_primitive! {
-	#[derive(Debug, PartialEq, Clone)]
+	#[derive(Debug, PartialEq, Clone, Copy)]
 	#[repr(u8)]
 	pub enum NmtState {
 		Off = 0x00,
