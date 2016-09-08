@@ -30,19 +30,19 @@ impl<'a> Evaluation<'a> {
 	pub fn print(&self) {
 
 		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("soc", "1==1") {
-			println!("SoC:\tavg = {:.0}ns\tmin = {}ns\tmax = {}ns jitter_abs = {}ns\tjitter_rel = {:.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
+			println!("SoC:    avg = {:>8.0}ns  min = {:>8}ns  max = {:>8}ns  jitter_abs = {:>7}ns  jitter_rel = {:>6.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
 		};
 
 		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("response", "type=='pres'") {
-			println!("PRes:\tavg = {:.0}ns\tmin = {}ns\tmax = {}ns jitter_abs = {}ns\tjitter_rel = {:.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
+			println!("PRes:   avg = {:>8.0}ns  min = {:>8}ns  max = {:>8}ns  jitter_abs = {:>7}ns  jitter_rel = {:>6.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
 		};
 
 		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("response", "type=='ident'") {
-			println!("Ident:\tavg = {:.0}ns\tmin = {}ns\tmax = {}ns jitter_abs = {}ns\tjitter_rel = {:.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
+			println!("Ident:  avg = {:>8.0}ns  min = {:>8}ns  max = {:>8}ns  jitter_abs = {:>7}ns  jitter_rel = {:>6.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
 		};
 
 		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("response", "type=='status'") {
-			println!("Status:\tavg = {:.0}ns\tmin = {}ns\tmax = {}ns jitter_abs = {}ns\tjitter_rel = {:.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
+			println!("Status: avg = {:>8.0}ns  min = {:>8}ns  max = {:>8}ns  jitter_abs = {:>7}ns  jitter_rel = {:>6.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
 		};
 
 	}
