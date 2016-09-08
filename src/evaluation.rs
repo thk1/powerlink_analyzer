@@ -32,10 +32,10 @@ impl<'a> Evaluation<'a> {
 	pub fn print(&self) {
 
 		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("soc", "1==1".to_owned()) {
-			println_stats!("SoC:",avg,min,max,jitter_abs,jitter_rel*100.);
+			println_stats!("Cycle/SoC",avg,min,max,jitter_abs,jitter_rel*100.);
 		};
 
-		self.print_field("Any","response","1==1","├──","├──");
+		self.print_field("Responses","response","1==1","├─","├─");
 		self.print_field("├─PRes","response","type=='pres'","│  ├─","│  └─");
 		self.print_field("├─Ident","response","type=='ident'","│  ├─","│  └─");
 		self.print_field("├─Status","response","type=='status'","│  ├─","│  └─");
@@ -62,7 +62,7 @@ impl<'a> Evaluation<'a> {
 				println_stats!(format!("{}{}",p,node), avg,min,max,jitter_abs,jitter_rel*100.);
 			};
 		}
-		
+
 	} 
 
 }
