@@ -1,0 +1,16 @@
+[package]
+name = "powerlink_analyzer"
+version = "0.1.0"
+authors = ["Thomas Keh"]
+license-file = "LICENSE.md"
+readme = "README.md"
+description = "Analyze Ethernet POWERLINK Network Traffic Captures"
+
+[dependencies]
+pcap = "0.5.7"
+rusqlite = "0.7.3"
+time = "0.1.35"
+enum_primitive = "0.1.0"
+num = "0.1.35"
+log = "0.3.6"
+env_logger = "0.3.4"
