@@ -145,7 +145,7 @@ impl<'a> Plkan<'a> {
 				if packet_type!=Some(PacketType::PRes) || Some(src)!=self.requested_node {
 					warn!("Missing proper PRes!");
 				} else {
-					self.db.insert_response(PacketType::PRes,src,diff,self.mn_state,self.cn_state[src as usize]);
+					self.db.insert_response("pres",src,diff,self.mn_state,self.cn_state[src as usize]);
 
 				}
 			},
@@ -165,13 +165,15 @@ impl<'a> Plkan<'a> {
 						if service!=Some(ServiceId::Ident) || Some(src)!=self.requested_node {
 							warn!("Missing proper Ident Response!");
 						} else {
-							//self.db.insert_ident(src,diff,self.mn_state,self.cn_state[src as usize]);
+							self.db.insert_response("ident",src,diff,self.mn_state,self.cn_state[src as usize]);
 						}
 					},
 
 					Some(ServiceId::Status) => {
 						if service!=Some(ServiceId::Status) || Some(src)!=self.requested_node {
 							warn!("Missing proper Status Response!");
+						} else {
+							self.db.insert_response("status",src,diff,self.mn_state,self.cn_state[src as usize]);
 						}
 					},
 

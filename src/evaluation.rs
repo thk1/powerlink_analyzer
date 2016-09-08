@@ -14,7 +14,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use database::*;
-use types::*;
 
 pub struct Evaluation<'a> {
 	db: &'a mut Database,
@@ -30,12 +29,20 @@ impl<'a> Evaluation<'a> {
 
 	pub fn print(&self) {
 
-		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("soc", &"1==1".to_owned()) {
-			println!("SoC: min = {}ns max = {}ns avg = {:.0}ns jitter_abs = {}ns jitter_rel = {:.2}%", min,max,avg,jitter_abs,jitter_rel*100.);
+		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("soc", "1==1") {
+			println!("SoC:\tavg = {:.0}ns\tmin = {}ns\tmax = {}ns jitter_abs = {}ns\tjitter_rel = {:.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
 		};
 
-		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("response", &format!("type=={}",PacketType::PRes as u8)) {
-			println!("PRes response time: min = {}ns max = {}ns avg = {:.0}ns jitter_abs = {}ns jitter_rel = {:.2}%", min,max,avg,jitter_abs,jitter_rel*100.);
+		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("response", "type=='pres'") {
+			println!("PRes:\tavg = {:.0}ns\tmin = {}ns\tmax = {}ns jitter_abs = {}ns\tjitter_rel = {:.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
+		};
+
+		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("response", "type=='ident'") {
+			println!("Ident:\tavg = {:.0}ns\tmin = {}ns\tmax = {}ns jitter_abs = {}ns\tjitter_rel = {:.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
+		};
+
+		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("response", "type=='status'") {
+			println!("Status:\tavg = {:.0}ns\tmin = {}ns\tmax = {}ns jitter_abs = {}ns\tjitter_rel = {:.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
 		};
 
 	}
