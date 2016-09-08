@@ -29,7 +29,7 @@ impl<'a> Evaluation<'a> {
 
 	pub fn print(&self) {
 		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("soc") {
-			println!("min = {}ns max = {}ns avg = {}ns jitter_abs = {}ns jitter_rel = {:.2}%", min,max,avg,jitter_abs,jitter_rel*100.);
+			println!("SoC: min = {}ns max = {}ns avg = {:.0}ns jitter_abs = {}ns jitter_rel = {:.2}%", min,max,avg,jitter_abs,jitter_rel*100.);
 		};
 	}
 
