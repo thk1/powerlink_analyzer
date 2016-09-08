@@ -159,6 +159,16 @@ impl<'a> Plkan<'a> {
 
 					Some(ServiceId::Unspec) => {
 						// accept anything
+						if service==Some(ServiceId::Sdo) {
+							if Some(src)!=self.requested_node {
+								warn!("Got SDO from wrong node!");
+							} else {
+								self.db.insert_response("sdo",src,diff,self.mn_state,self.cn_state[src as usize]);
+							}
+						} else {
+							trace!("ASnd package in Unspec mode with service_id!=SDO -> Assuming VETH.");
+							self.db.insert_response("veth",src,diff,self.mn_state,self.cn_state[src as usize]);
+						}
 					},
 
 					Some(ServiceId::Ident) => {

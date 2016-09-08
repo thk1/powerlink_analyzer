@@ -45,6 +45,14 @@ impl<'a> Evaluation<'a> {
 			println!("Status: avg = {:>8.0}ns  min = {:>8}ns  max = {:>8}ns  jitter_abs = {:>7}ns  jitter_rel = {:>6.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
 		};
 
+		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("response", "type=='sdo'") {
+			println!("SDO:    avg = {:>8.0}ns  min = {:>8}ns  max = {:>8}ns  jitter_abs = {:>7}ns  jitter_rel = {:>6.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
+		};
+
+		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("response", "type=='veth'") {
+			println!("VETH:   avg = {:>8.0}ns  min = {:>8}ns  max = {:>8}ns  jitter_abs = {:>7}ns  jitter_rel = {:>6.2}%", avg,min,max,jitter_abs,jitter_rel*100.);
+		};
+
 	}
 
 }
