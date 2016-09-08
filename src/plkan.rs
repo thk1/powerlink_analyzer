@@ -131,7 +131,13 @@ impl<'a> Plkan<'a> {
 		//let dest = packet.data[15];
 		let src = packet.data[16];
 		let packet_type = PacketType::from_u8(packet.data[14]);
-		let ts = self.get_timespec(packet);
+
+		if self.request_ts.is_none() {
+			trace!("No timestamp -> no response parsing.");
+			return;
+		}
+
+		let diff = self.get_timespec(packet) - self.request_ts.unwrap();
 
 		match self.request_type {
 			
@@ -139,11 +145,7 @@ impl<'a> Plkan<'a> {
 				if packet_type!=Some(PacketType::PRes) || Some(src)!=self.requested_node {
 					warn!("Missing proper PRes!");
 				} else {
-
-					if let Some(request_ts) = self.request_ts {
-						let diff = ts - request_ts;
-						self.db.insert_pres(src,diff,self.mn_state,self.cn_state[src as usize]);
-					}
+					self.db.insert_pres(src,diff,self.mn_state,self.cn_state[src as usize]);
 
 				}
 			},
@@ -162,6 +164,8 @@ impl<'a> Plkan<'a> {
 					Some(ServiceId::Ident) => {
 						if service!=Some(ServiceId::Ident) || Some(src)!=self.requested_node {
 							warn!("Missing proper Ident Response!");
+						} else {
+							//self.db.insert_ident(src,diff,self.mn_state,self.cn_state[src as usize]);
 						}
 					},
 
