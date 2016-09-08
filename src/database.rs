@@ -85,7 +85,7 @@ impl Database {
 	}
 
 	// returns (min,max,avg,jitter_abs,jitter_rel)
-	pub fn get_jitter(&self, table: &'static str, where_clause: &'static str) -> Option<(u64,u64,f64,u64,f64)> {
+	pub fn get_jitter(&self, table: &'static str, where_clause: String) -> Option<(u64,u64,f64,u64,f64)> {
 
 		let res = self.connection.query_row(
 				&format!("
@@ -99,8 +99,8 @@ impl Database {
 				&[],
 				|row| -> (i64,i64,f64) {
 					(row.get(0), row.get(1), row.get(2))
-	    		}
-	    	);
+				}
+			);
 
 		match res {
 			
@@ -118,6 +118,18 @@ impl Database {
 			}
 
 		}
+	}
+
+	pub fn get_nodes(&self, table: &'static str, where_clause: String) -> Vec<u8> {
+		let mut result = Vec::new();
+		let mut stmt = self.connection.prepare(&format!("SELECT node_id FROM {} WHERE {} GROUP BY node_id",table,where_clause)[..]).unwrap();
+		let node_iter = stmt.query_map(&[], |row| -> u8 {
+			row.get::<i32, i64>(0) as u8
+		}).unwrap();
+		for node in node_iter {
+	        result.push(node.unwrap());
+	    }
+	    return result;
 	}
 
 }
