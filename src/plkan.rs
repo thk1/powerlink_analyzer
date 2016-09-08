@@ -145,7 +145,7 @@ impl<'a> Plkan<'a> {
 				if packet_type!=Some(PacketType::PRes) || Some(src)!=self.requested_node {
 					warn!("Missing proper PRes!");
 				} else {
-					self.db.insert_pres(src,diff,self.mn_state,self.cn_state[src as usize]);
+					self.db.insert_response(PacketType::PRes,src,diff,self.mn_state,self.cn_state[src as usize]);
 
 				}
 			},

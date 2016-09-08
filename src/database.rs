@@ -36,44 +36,9 @@ impl Database {
 			)", &[]).unwrap();
 
 		conn.execute("
-			CREATE TABLE pres (
+			CREATE TABLE response (
 				id              INTEGER PRIMARY KEY,
-				node_id         INTEGER NOT NULL,
-				timediff_ns     INTEGER NOT NULL,
-				cn_state        INTEGER,
-				mn_state        INTEGER
-			)", &[]).unwrap();
-
-		conn.execute("
-			CREATE TABLE ident (
-				id              INTEGER PRIMARY KEY,
-				node_id         INTEGER NOT NULL,
-				timediff_ns     INTEGER NOT NULL,
-				cn_state        INTEGER,
-				mn_state        INTEGER
-			)", &[]).unwrap();
-
-		conn.execute("
-			CREATE TABLE status (
-				id              INTEGER PRIMARY KEY,
-				node_id         INTEGER NOT NULL,
-				timediff_ns     INTEGER NOT NULL,
-				cn_state        INTEGER,
-				mn_state        INTEGER
-			)", &[]).unwrap();
-
-		conn.execute("
-			CREATE TABLE sdo (
-				id              INTEGER PRIMARY KEY,
-				node_id         INTEGER NOT NULL,
-				timediff_ns     INTEGER NOT NULL,
-				cn_state        INTEGER,
-				mn_state        INTEGER
-			)", &[]).unwrap();
-
-		conn.execute("
-			CREATE TABLE other (
-				id              INTEGER PRIMARY KEY,
+				type            INTEGER NOT NULL,
 				node_id         INTEGER NOT NULL,
 				timediff_ns     INTEGER NOT NULL,
 				cn_state        INTEGER,
@@ -97,7 +62,7 @@ impl Database {
 		&[&(ns as i64), &state]).unwrap();
 	}
 
-	pub fn insert_pres(&self, node_id: u8, timediff: Duration, mn_state: Option<NmtState>, cn_state: Option<NmtState>) {
+	pub fn insert_response(&self, packet_type: PacketType, node_id: u8, timediff: Duration, mn_state: Option<NmtState>, cn_state: Option<NmtState>) {
 
 		trace!("Insert PREs");
 		let ns = timediff.num_nanoseconds().expect("Timediff is too large to represent it as nanoseconds. Timediffs this lare probably mean an error.");
@@ -113,21 +78,24 @@ impl Database {
 		};
 
 		self.connection.execute("
-			INSERT INTO pres (node_id, timediff_ns, cn_state, mn_state)
-			VALUES ($1, $2, $3, $4)",
-		&[&(node_id as i64), &(ns as i64), &cn_state_u8, &mn_state_u8]).unwrap();
+			INSERT INTO response (type, node_id, timediff_ns, cn_state, mn_state)
+			VALUES ($1, $2, $3, $4, $5)",
+		&[&((packet_type as u8) as i64), &(node_id as i64), &(ns as i64), &cn_state_u8, &mn_state_u8]).unwrap();
 
 	}
 
 	// returns (min,max,avg,jitter_abs,jitter_rel)
-	pub fn get_jitter(&self, table: &'static str) -> Option<(u64,u64,f64,u64,f64)> {
+	pub fn get_jitter(&self, table: &'static str, where_clause: &String) -> Option<(u64,u64,f64,u64,f64)> {
 
 		let res = self.connection.query_row(
-				&format!("SELECT
-					MIN(timediff_ns) as min,
-					MAX(timediff_ns) as max,
-					AVG(timediff_ns) as avg
-				FROM {}",table)[..],
+				&format!("
+					SELECT
+						MIN(timediff_ns) as min,
+						MAX(timediff_ns) as max,
+						AVG(timediff_ns) as avg
+					FROM {}
+					WHERE {}
+				",table,where_clause)[..],
 				&[],
 				|row| -> (i64,i64,f64) {
 					(row.get(0), row.get(1), row.get(2))
