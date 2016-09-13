@@ -41,8 +41,8 @@ impl<'a> Evaluation<'a> {
 
 	pub fn print(&self) {
 
-		println!("Errors:");
-		println!("Notice: Missing Ident Responses from [253] (diagnostic device) and missing responses when CN state is Off are regular");
+		println!("\nErrors:");
+		println!("Notice: Missing Ident Responses from [253] (diagnostic device) and missing responses when CN state is Off are regular.");
 		for row in self.db.get_errors() {
 			println!("[{:>3}] {:>3}x {:<25} (CN:{:?} MN:{:?})", row.0, row.4, row.1, row.2, row.3);
 		}

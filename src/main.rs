@@ -20,7 +20,7 @@ extern crate time;
 #[macro_use] extern crate enum_primitive;
 extern crate num;
 #[macro_use] extern crate log;
-extern crate env_logger;
+extern crate simplelog;
 extern crate rusqlite;
 extern crate getopts;
 
@@ -36,6 +36,7 @@ use database::*;
 use evaluation::*;
 use getopts::Options;
 use std::env;
+use simplelog::{SimpleLogger,LogLevelFilter};
 
 fn print_usage(program: &str, opts: Options) {
     let brief = format!("Usage: {} [options] PCAPNG_FILE", program);
@@ -44,7 +45,7 @@ fn print_usage(program: &str, opts: Options) {
 
 fn main() {
 
-	env_logger::init().unwrap();
+    let _ = SimpleLogger::init(LogLevelFilter::Info);
 
 	let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
@@ -69,7 +70,6 @@ fn main() {
         Path::new(concat!(env!("CARGO_MANIFEST_DIR"),"/res/example.pcapng"))
     };
 
-    info!("Ethernet POWERLINK network traffic analyzer");
     info!("Loading PCAP file {}.",file_path.to_str().expect("invalid path (UTF-8 error)"));
 
     let mut cap = Capture::from_file_with_precision(file_path,Precision::Nano).expect("Loading PCAP file failed");
