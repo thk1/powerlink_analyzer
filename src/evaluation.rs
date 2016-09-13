@@ -15,11 +15,18 @@
 
 use database::*;
 
+macro_rules! println_stats { ( $name:expr, $avg:expr, $min:expr, $max:expr, $jitter_abs:expr, $jitter_rel:expr  ) => ( println!("{:<9} avg = {:>10}ns  min = {:>10}ns  max = {:>10}ns  jitter_abs = {:>9}ns  jitter_rel = {:>6.2}%",
+	$name,
+	Evaluation::group_digits($avg),
+	Evaluation::group_digits($min),
+	Evaluation::group_digits($max),
+	Evaluation::group_digits($jitter_abs),
+	$jitter_rel)
+); }
+
 pub struct Evaluation<'a> {
 	db: &'a mut Database,
 }
-	
-	macro_rules! println_stats { ( $name:expr, $avg:expr, $min:expr, $max:expr, $jitter_abs:expr, $jitter_rel:expr  ) => ( println!("{:<9} avg = {:>8.0}ns  min = {:>8}ns  max = {:>8}ns  jitter_abs = {:>7}ns  jitter_rel = {:>6.2}%", $name, $avg, $min, $max, $jitter_abs, $jitter_rel) ); }
 
 impl<'a> Evaluation<'a> {
 
@@ -32,7 +39,7 @@ impl<'a> Evaluation<'a> {
 	pub fn print(&self) {
 
 		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("soc", "1==1".to_owned()) {
-			println_stats!("Cycle/SoC",avg,min,max,jitter_abs,jitter_rel*100.);
+			println_stats!("Cycle/SoC",avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
 		};
 
 		self.print_field("Responses","response","1==1","├─","├─");
@@ -47,7 +54,7 @@ impl<'a> Evaluation<'a> {
 	fn print_field(&self, title: &'static str, table: &'static str, where_clause: &'static str, prefix: &'static str, prefix_end: &'static str) {
 		
 		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter(table, where_clause.to_owned()) {
-			println_stats!(title,avg,min,max,jitter_abs,jitter_rel*100.);
+			println_stats!(title,avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
 		};
 
 		let nodes = self.db.get_nodes(table, where_clause.to_owned());
@@ -59,10 +66,18 @@ impl<'a> Evaluation<'a> {
 				} else {
 					prefix
 				};
-				println_stats!(format!("{}{}",p,node), avg,min,max,jitter_abs,jitter_rel*100.);
+				println_stats!(format!("{}{}",p,node), avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
 			};
 		}
 
-	} 
+	}
+
+	fn group_digits(n: usize) -> String {
+		let string = n.to_string();
+		let bytes: Vec<_> = string.bytes().rev().collect();
+		let chunks: Vec<_> = bytes.chunks(3).map(|chunk| String::from_utf8_lossy(chunk)).collect();
+		let result: Vec<_> = chunks.join("'").bytes().rev().collect();
+		String::from_utf8(result).unwrap()
+	}
 
 }
