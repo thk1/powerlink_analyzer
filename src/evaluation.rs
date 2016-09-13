@@ -41,6 +41,14 @@ impl<'a> Evaluation<'a> {
 
 	pub fn print(&self) {
 
+		println!("Errors:");
+		println!("Notice: Missing Ident Responses from [253] (diagnostic device) and missing responses when CN state is Off are regular");
+		for row in self.db.get_errors() {
+			println!("[{:>3}] {:>3}x {:<25} (CN:{:?} MN:{:?})", row.0, row.4, row.1, row.2, row.3);
+		}
+
+		println!("\nStatistics:");
+
 		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("soc", "1==1".to_owned()) {
 			println_stats!("Cycle/SoC",avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
 		};

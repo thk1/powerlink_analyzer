@@ -56,6 +56,7 @@ enum_from_primitive! {
 		Operational = 0xFD,
 		Stopped = 0x4D,
 		BasicEthernet = 0x1E,
+		Unknown = 0xEE,
 	}
 }
 

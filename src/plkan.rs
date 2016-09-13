@@ -48,8 +48,6 @@ impl<'a> Plkan<'a> {
 	}
 
 	pub fn process_packet(&mut self, packet: &Packet) {
-		//info!("timestamp {:?} {:?}", packet.header.ts.tv_sec, packet.header.ts.tv_usec);
-		//info!("received packet! {:?}", packet);
 		
 		// check for non-powerlink traffic
 		if self.request_type!=Some(PacketType::ASnd) && self.request_service!=Some(ServiceId::Unspec) && (packet.header.caplen<17 || packet.data[12]!=0x88 || packet.data[13]!=0xab) {
@@ -57,11 +55,8 @@ impl<'a> Plkan<'a> {
 		}
 
 		assert!(packet.header.caplen>16);
-
-		//let dest = packet.data[15];
-		//let src = packet.data[16];
 		let packet_type = PacketType::from_u8(packet.data[14]);
-		info!("Got packet of type {:?}.",packet_type);
+		trace!("Got packet of type {:?} [{} -> {}].", packet_type, packet.data[15], packet.data[16]);
 
 		self.process_state(packet);
 
@@ -145,7 +140,8 @@ impl<'a> Plkan<'a> {
 			
 			Some(PacketType::PReq) => {
 				if packet_type!=Some(PacketType::PRes) || Some(src)!=self.requested_node {
-					warn!("Missing proper PRes!");
+					trace!("Missing proper PRes!");
+					self.db.insert_error("pres_missing",self.requested_node.unwrap(),self.mn_state,self.cn_state[src as usize]);
 				} else {
 					self.db.insert_response("pres",src,diff,self.mn_state,self.cn_state[src as usize]);
 
@@ -163,7 +159,8 @@ impl<'a> Plkan<'a> {
 						// accept anything
 						if service==Some(ServiceId::Sdo) {
 							if Some(src)!=self.requested_node {
-								warn!("Got SDO from wrong node!");
+								trace!("Got SDO from wrong node!");
+								self.db.insert_error("sdo_from_wrong_node",self.requested_node.unwrap(),self.mn_state,self.cn_state[src as usize]);
 							} else {
 								self.db.insert_response("sdo",src,diff,self.mn_state,self.cn_state[src as usize]);
 							}
@@ -175,7 +172,8 @@ impl<'a> Plkan<'a> {
 
 					Some(ServiceId::Ident) => {
 						if service!=Some(ServiceId::Ident) || Some(src)!=self.requested_node {
-							warn!("Missing proper Ident Response!");
+							trace!("Missing proper Ident Response!");
+							self.db.insert_error("ident_response_missing",self.requested_node.unwrap(),self.mn_state,self.cn_state[src as usize]);
 						} else {
 							self.db.insert_response("ident",src,diff,self.mn_state,self.cn_state[src as usize]);
 						}
@@ -183,7 +181,8 @@ impl<'a> Plkan<'a> {
 
 					Some(ServiceId::Status) => {
 						if service!=Some(ServiceId::Status) || Some(src)!=self.requested_node {
-							warn!("Missing proper Status Response!");
+							trace!("Missing proper Status Response!");
+							self.db.insert_error("status_response_missing",self.requested_node.unwrap(),self.mn_state,self.cn_state[src as usize]);
 						} else {
 							self.db.insert_response("status",src,diff,self.mn_state,self.cn_state[src as usize]);
 						}
