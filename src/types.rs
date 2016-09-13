@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Here are some enums related to the Ethernet POWERLINK protocol defined.
+
 #![allow(dead_code)]
 
 enum_from_primitive! {

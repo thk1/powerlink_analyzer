@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+//! The main module contains initialization tasks and user interaction.
+
 extern crate pcap;
 extern crate time;
 #[macro_use] extern crate enum_primitive;
