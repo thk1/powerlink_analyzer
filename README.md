@@ -19,7 +19,7 @@ sudo apt-get install libsqlite3-dev libpcap-dev && curl -sSf https://static.rust
 ## Build & Run
 
 ```bash
-cargo run
+cargo run PATH_TO_PCAPNG_FILE
 ```
 
 ## License
