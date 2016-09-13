@@ -20,6 +20,7 @@ extern crate num;
 #[macro_use] extern crate log;
 extern crate env_logger;
 extern crate rusqlite;
+extern crate getopts;
 
 mod plkan;
 mod types;
@@ -31,16 +32,45 @@ use std::path::Path;
 use plkan::Plkan;
 use database::*;
 use evaluation::*;
+use getopts::Options;
+use std::env;
+
+fn print_usage(program: &str, opts: Options) {
+    let brief = format!("Usage: {} [options] PCAPNG_FILE", program);
+    print!("{}", opts.usage(&brief));
+}
 
 fn main() {
 
 	env_logger::init().unwrap();
 
-	let example_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("res").join("example.pcapng");
-    info!("Ethernet POWERLINK network traffic analyzer");
-    info!("Loading PCAP file {}.",example_path.to_str().expect("invalid path"));
+	let args: Vec<String> = env::args().collect();
+    let program = args[0].clone();
 
-    let mut cap = Capture::from_file_with_precision(example_path,Precision::Nano).expect("Loading PCAP file failed");
+    let mut opts = Options::new();
+    opts.optflag("h", "help", "print this help menu");
+
+    let matches = match opts.parse(&args[1..]) {
+        Ok(m) => { m }
+        Err(f) => { panic!(f.to_string()) }
+    };
+
+    if matches.opt_present("h") {
+        print_usage(&program, opts);
+        return;
+    }
+
+    let file_path = if !matches.free.is_empty() {
+        Path::new(&matches.free[0])
+    } else {
+        warn!("No input file given. Using example capture.");
+        Path::new(concat!(env!("CARGO_MANIFEST_DIR"),"/res/example.pcapng"))
+    };
+
+    info!("Ethernet POWERLINK network traffic analyzer");
+    info!("Loading PCAP file {}.",file_path.to_str().expect("invalid path (UTF-8 error)"));
+
+    let mut cap = Capture::from_file_with_precision(file_path,Precision::Nano).expect("Loading PCAP file failed");
 
     let mut db = Database::new();
     
