@@ -39,53 +39,53 @@ use std::env;
 use simplelog::{SimpleLogger,LogLevelFilter};
 
 fn print_usage(program: &str, opts: Options) {
-    let brief = format!("Usage: {} [options] PCAPNG_FILE", program);
-    print!("{}", opts.usage(&brief));
+	let brief = format!("Usage: {} [options] PCAPNG_FILE", program);
+	print!("{}", opts.usage(&brief));
 }
 
 fn main() {
 
-    let _ = SimpleLogger::init(LogLevelFilter::Info);
+	let _ = SimpleLogger::init(LogLevelFilter::Info);
 
 	let args: Vec<String> = env::args().collect();
-    let program = args[0].clone();
+	let program = args[0].clone();
 
-    let mut opts = Options::new();
-    opts.optflag("h", "help", "print this help menu");
+	let mut opts = Options::new();
+	opts.optflag("h", "help", "print this help menu");
 
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => { m }
-        Err(f) => { panic!(f.to_string()) }
-    };
+	let matches = match opts.parse(&args[1..]) {
+		Ok(m) => { m }
+		Err(f) => { panic!(f.to_string()) }
+	};
 
-    if matches.opt_present("h") {
-        print_usage(&program, opts);
-        return;
-    }
+	if matches.opt_present("h") {
+		print_usage(&program, opts);
+		return;
+	}
 
-    let file_path = if !matches.free.is_empty() {
-        Path::new(&matches.free[0])
-    } else {
-        warn!("No input file given. Using example capture.");
-        Path::new(concat!(env!("CARGO_MANIFEST_DIR"),"/res/example.pcapng"))
-    };
+	let file_path = if !matches.free.is_empty() {
+		Path::new(&matches.free[0])
+	} else {
+		warn!("No input file given. Using example capture.");
+		Path::new(concat!(env!("CARGO_MANIFEST_DIR"),"/res/example.pcapng"))
+	};
 
-    info!("Loading PCAP file {}.",file_path.to_str().expect("invalid path (UTF-8 error)"));
+	info!("Loading PCAP file {}.",file_path.to_str().expect("invalid path (UTF-8 error)"));
 
-    let mut cap = Capture::from_file_with_precision(file_path,Precision::Nano).expect("Loading PCAP file failed");
+	let mut cap = Capture::from_file_with_precision(file_path,Precision::Nano).expect("Loading PCAP file failed");
 
-    let mut db = Database::new();
-    
-    {
-	    let mut plkan = Plkan::new(&mut db);
+	let mut db = Database::new();
+	
+	{
+		let mut plkan = Plkan::new(&mut db);
 
 		while let Ok(packet) = cap.next() {
 			plkan.process_packet(&packet);
 		}
 	}
-    
-    {
-	    let eval = Evaluation::new(&mut db);
+	
+	{
+		let eval = Evaluation::new(&mut db);
 		eval.print();
 	}
 

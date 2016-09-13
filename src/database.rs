@@ -158,9 +158,9 @@ impl Database {
 			row.get::<i32, i64>(0) as u8
 		}).unwrap();
 		for node in node_iter {
-	        result.push(node.unwrap());
-	    }
-	    return result;
+			result.push(node.unwrap());
+		}
+		return result;
 	}
 
 	pub fn get_errors(&self) -> Vec<(u8,String,NmtState,NmtState,usize)> {
@@ -171,10 +171,10 @@ impl Database {
 		}).unwrap();
 		for node in node_iter {
 			if let Ok(n) = node {
-	        	result.push((n.0 as u8, n.1, NmtState::from_u8(n.2 as u8).expect("Invalid NmtState in database!"), NmtState::from_u8(n.3 as u8).expect("Invalid NmtState in database!"), n.4 as usize));
-	        };
-	    }
-	    return result;
+				result.push((n.0 as u8, n.1, NmtState::from_u8(n.2 as u8).expect("Invalid NmtState in database!"), NmtState::from_u8(n.3 as u8).expect("Invalid NmtState in database!"), n.4 as usize));
+			};
+		}
+		return result;
 	}
 
 }
