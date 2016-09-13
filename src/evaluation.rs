@@ -17,6 +17,7 @@
 
 use database::*;
 
+/// Prints a single line in the result table.
 macro_rules! println_stats { ( $name:expr, $avg:expr, $min:expr, $max:expr, $jitter_abs:expr, $jitter_rel:expr  ) => ( println!("{:<9} avg = {:>10}ns  min = {:>10}ns  max = {:>10}ns  jitter_abs = {:>9}ns  jitter_rel = {:>6.2}%",
 	$name,
 	Evaluation::group_digits($avg),
