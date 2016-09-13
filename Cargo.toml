@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Thomas Keh"]
 license-file = "LICENSE.md"
 readme = "README.md"
-description = "Analyze Ethernet POWERLINK Network Traffic Captures"
+description = "Analyze Ethernet POWERLINK Network Traffic"
 
 [dependencies]
 pcap = "0.5.7"

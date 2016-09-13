@@ -1,4 +1,4 @@
-// Powerlink Analyzer - Analyze Ethernet POWERLINK Network Traffic Captures
+// Powerlink Analyzer - Analyze Ethernet POWERLINK Network Traffic
 // Copyright (C) 2016, Thomas Keh
 //
 // This program is free software: you can redistribute it and/or modify
