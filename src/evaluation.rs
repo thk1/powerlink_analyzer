@@ -56,7 +56,7 @@ impl<'a> Evaluation<'a> {
 
 		println!("\nStatistics:");
 
-		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("soc", "1==1".to_owned()) {
+		if let Ok((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("soc", "1==1".to_owned()) {
 			println_stats!("Cycle/SoC",avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
 		};
 
@@ -71,14 +71,14 @@ impl<'a> Evaluation<'a> {
 
 	fn print_field(&self, title: &'static str, table: &'static str, where_clause: &'static str, prefix: &'static str, prefix_end: &'static str) {
 		
-		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter(table, where_clause.to_owned()) {
+		if let Ok((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter(table, where_clause.to_owned()) {
 			println_stats!(title,avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
 		};
 
 		let nodes = self.db.get_nodes(table, where_clause.to_owned());
 
 		for (i,node) in nodes.iter().enumerate() {
-			if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter(table, format!("{} AND node_id=={}",where_clause,node)) {
+			if let Ok((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter(table, format!("{} AND node_id=={}",where_clause,node)) {
 				let p = if i==nodes.len()-1 {
 					prefix_end
 				} else {

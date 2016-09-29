@@ -18,9 +18,10 @@
 use rusqlite::Connection;
 use time::Duration;
 use types::*;
-use std::error::Error;
 use std::cmp;
 use enum_primitive::FromPrimitive;
+use rusqlite::Error;
+use rusqlite::Result;
 
 pub struct Database {
 	connection: Connection,
@@ -139,39 +140,36 @@ impl Database {
 	}
 
 	// returns (min,max,avg,jitter_abs,jitter_rel)
-	pub fn get_jitter(&self, table: &'static str, where_clause: String) -> Option<(u64,u64,f64,u64,f64)> {
-
-		let res = self.connection.query_row(
-				&format!("
+	pub fn get_jitter(&self, table: &'static str, where_clause: String) -> Result<(u64,u64,f64,u64,f64)> {
+		
+		let mut stmt = self.connection.prepare(&format!("
 					SELECT
 						MIN(timediff_ns) as min,
 						MAX(timediff_ns) as max,
 						AVG(timediff_ns) as avg
 					FROM {}
 					WHERE {}
-				",table,where_clause)[..],
-				&[],
-				|row| -> (i64,i64,f64) {
-					(row.get(0), row.get(1), row.get(2))
-				}
-			);
+				",table,where_clause)[..]).unwrap();
 
-		match res {
-			
-			Ok((min,max,avg)) => {
-				let avg_int = avg as i64;
-				let jitter_abs = cmp::max(avg_int-min,max-avg_int);
-				let jitter_rel = jitter_abs as f64 / avg;
+		let mut rows = try!(stmt.query(&[]));
+
+		if let Some(next_result) = rows.next() {
+
+			let row = try!(next_result);
+
+			let min: i64 = try!(row.get_checked(0));
+			let max: i64 = try!(row.get_checked(1));
+			let avg: f64 = try!(row.get_checked(2));
+			let avg_int = avg as i64;
+			let jitter_abs = cmp::max(avg_int-min,max-avg_int);
+			let jitter_rel = jitter_abs as f64 / avg;
 				
-				return Some((min as u64,max as u64,avg,jitter_abs as u64,jitter_rel));
-			},
+			Ok((min as u64,max as u64,avg,jitter_abs as u64,jitter_rel))
 
-			Err(e) => {
-				error!("{:?}",e.description());
-				return None;
-			}
-
+		} else {
+			Err(Error::QueryReturnedNoRows)
 		}
+		
 	}
 
 	pub fn get_nodes(&self, table: &'static str, where_clause: String) -> Vec<u8> {
