@@ -57,6 +57,15 @@ impl Database {
 				mn_state        INTEGER
 			)", &[]).unwrap();
 
+		conn.execute("
+			CREATE TABLE state_changes (
+				id              INTEGER PRIMARY KEY,
+				node_id         INTEGER NOT NULL,
+				state           INTEGER,
+				timestamp       INTEGER NOT NULL,
+				packet_id		INTEGER NOT NULL
+			)", &[]).unwrap();
+
 		return Database { connection: conn }
 	}
 
@@ -112,6 +121,20 @@ impl Database {
 			INSERT INTO errors (type, node_id, cn_state, mn_state)
 			VALUES ($1, $2, $3, $4)",
 		&[&packet_type, &(node_id as i64), &cn_state_u8, &mn_state_u8]).unwrap();
+
+	}
+
+	pub fn insert_state_change(&self, node_id: u8, state: Option<NmtState>, timestamp: Duration, packet_id: usize) {
+		
+		let state_i64 = match state {
+			Some(s) => Some((s as u8) as i64),
+			None => None
+		};
+
+		self.connection.execute("
+			INSERT INTO state_changes (node_id, state, timestamp, packet_id)
+			VALUES ($1, $2, $3, $4)",
+		&[&(node_id as i64), &state_i64, &timestamp.num_nanoseconds().unwrap(), &(packet_id as i64)]).unwrap();
 
 	}
 
@@ -172,6 +195,20 @@ impl Database {
 		for node in node_iter {
 			if let Ok(n) = node {
 				result.push((n.0 as u8, n.1, NmtState::from_u8(n.2 as u8).expect("Invalid NmtState in database!"), NmtState::from_u8(n.3 as u8).expect("Invalid NmtState in database!"), n.4 as usize));
+			};
+		}
+		return result;
+	}
+
+	pub fn get_state_changes(&self) -> Vec<(u8,NmtState,i64,i64)> {
+		let mut result = Vec::new();
+		let mut stmt = self.connection.prepare("SELECT node_id, state, timestamp, packet_id FROM state_changes ORDER BY timestamp").unwrap();
+		let node_iter = stmt.query_map(&[], |row| -> (i64,i64,i64,i64) {
+			(row.get(0),row.get_checked(1).unwrap_or(NmtState::Unknown as i64),row.get(2),row.get(3))
+		}).unwrap();
+		for node in node_iter {
+			if let Ok(n) = node {
+				result.push((n.0 as u8, NmtState::from_u8(n.1 as u8).expect("Invalid NmtState in database!"), n.2, n.3));
 			};
 		}
 		return result;

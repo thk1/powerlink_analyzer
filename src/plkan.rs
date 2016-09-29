@@ -15,7 +15,7 @@
 
 //! The Plkan module does the actual analysis work.
 
-use time::Timespec;
+use time::{Timespec,Duration};
 use pcap::*;
 use types::*;
 use num::FromPrimitive;
@@ -30,6 +30,8 @@ pub struct Plkan<'a> {
 	requested_node: Option<u8>,
 	mn_state: Option<NmtState>,
 	cn_state: [Option<NmtState>; 256],
+	first_ts: Option<Timespec>,
+	packet_id: usize,
 }
 
 impl<'a> Plkan<'a> {
@@ -44,11 +46,19 @@ impl<'a> Plkan<'a> {
 			requested_node: None,
 			mn_state: None,
 			cn_state: [None::<NmtState>; 256],
+			first_ts: None,
+			packet_id: 0,
 		}
 	}
 
 	pub fn process_packet(&mut self, packet: &Packet) {
 		
+		if self.first_ts.is_none() {
+			self.first_ts = Some(self.get_timespec(packet));
+		}
+
+		self.packet_id += 1;
+
 		// check for non-powerlink traffic
 		if self.request_type!=Some(PacketType::ASnd) && self.request_service!=Some(ServiceId::Unspec) && (packet.header.caplen<17 || packet.data[12]!=0x88 || packet.data[13]!=0xab) {
 			warn!("Non-powerlink package and VETH not expected: {:?}", packet);
@@ -69,13 +79,27 @@ impl<'a> Plkan<'a> {
 		self.process_request(packet);
 
 		//self.request_ts = Some(self.get_timespec(packet));
-		
 
+	}
+
+	fn set_cn_state(&mut self, id: u8, state: Option<NmtState>, timestamp: Duration) {
+		if state != self.cn_state[id as usize] {
+			self.cn_state[id as usize] = state;
+			self.db.insert_state_change(id, state, timestamp, self.packet_id);
+		}
+	}
+
+	fn set_mn_state(&mut self, state: Option<NmtState>, timestamp: Duration) {
+		if state != self.mn_state {
+			self.mn_state = state;
+			self.db.insert_state_change(240, state, timestamp, self.packet_id);
+		}
 	}
 
 	fn process_state(&mut self, packet: &Packet) {
 
 		let packet_type = PacketType::from_u8(packet.data[14]);
+		let ts = self.get_timespec(packet)-self.first_ts.unwrap();
 
 		match packet_type {
 			
@@ -84,12 +108,11 @@ impl<'a> Plkan<'a> {
 			},
 			
 			Some(PacketType::SoA) => {
-				self.mn_state = NmtState::from_u8(packet.data[17]);
+				self.set_mn_state(NmtState::from_u8(packet.data[17]), ts);
 			},
 
 			Some(PacketType::ASnd) => {
-				let src = packet.data[16] as usize;
-				self.cn_state[src] = NmtState::from_u8(packet.data[20]);
+				// No state transmission
 			},
 
 			Some(PacketType::PReq) => {
@@ -97,8 +120,12 @@ impl<'a> Plkan<'a> {
 			},
 
 			Some(PacketType::PRes) => {
-				let src = packet.data[16] as usize;
-				self.cn_state[src] = NmtState::from_u8(packet.data[17]);
+				let src = packet.data[16];
+				if src==240 {
+					self.set_mn_state(NmtState::from_u8(packet.data[17]), ts);
+				} else {
+					self.set_cn_state(src, NmtState::from_u8(packet.data[17]), ts);
+				}
 			}
 
 			_ => {

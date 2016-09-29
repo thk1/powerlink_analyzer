@@ -47,6 +47,13 @@ impl<'a> Evaluation<'a> {
 			println!("[{:>3}] {:>3}x {:<25} (CN:{:?} MN:{:?})", row.0, row.4, row.1, row.2, row.3);
 		}
 
+		println!("\nState Changes:");
+		for row in self.db.get_state_changes() {
+			println!("{:>5} {:>14}ns [{:>3}] {:?}", Evaluation::group_digits(row.3 as usize),
+				Evaluation::group_digits(row.2 as usize), row.0, row.1);
+		}
+
+
 		println!("\nStatistics:");
 
 		if let Some((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("soc", "1==1".to_owned()) {
