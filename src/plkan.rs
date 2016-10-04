@@ -59,26 +59,35 @@ impl<'a> Plkan<'a> {
 
 		self.packet_id += 1;
 
-		// check for non-powerlink traffic
-		if self.request_type!=Some(PacketType::ASnd) && self.request_service!=Some(ServiceId::Unspec) && (packet.header.caplen<17 || packet.data[12]!=0x88 || packet.data[13]!=0xab) {
-			warn!("Non-powerlink package and VETH not expected: {:?}", packet);
+		if !Plkan::is_powerlink(packet) {
+			
+			if self.request_type==Some(PacketType::SoA) && self.request_service == Some(ServiceId::Unspec) {
+				trace!("Got VETH packet.");
+			} else {
+				trace!("Got non-Powerlink packet, but VETH is not expected: {:?}", packet);
+				// CN state has no meaning here.
+				self.db.insert_error("unexpected_veth",self.requested_node.unwrap(),self.mn_state,None);
+			}
+
+		} else {
+
+			assert!(packet.header.caplen>16);
+			let packet_type = PacketType::from_u8(packet.data[14]);
+			trace!("Got packet of type {:?} [{} -> {}].", packet_type, packet.data[15], packet.data[16]);
+
+			self.process_state(packet);
+
+			self.process_cyclic(packet);
+
+			self.process_response(packet);
+			
+			self.reset_expectations();
+
+			self.process_request(packet);
+
+			//self.request_ts = Some(self.get_timespec(packet));
+
 		}
-
-		assert!(packet.header.caplen>16);
-		let packet_type = PacketType::from_u8(packet.data[14]);
-		trace!("Got packet of type {:?} [{} -> {}].", packet_type, packet.data[15], packet.data[16]);
-
-		self.process_state(packet);
-
-		self.process_cyclic(packet);
-
-		self.process_response(packet);
-		
-		self.reset_expectations();
-
-		self.process_request(packet);
-
-		//self.request_ts = Some(self.get_timespec(packet));
 
 	}
 
@@ -176,25 +185,54 @@ impl<'a> Plkan<'a> {
 			},
 
 			Some(PacketType::SoA) => {
-						
+
 				assert!(packet.header.caplen>17);
 				let service = ServiceId::from_u8(packet.data[17]);
 
 				match self.request_service {
 
 					Some(ServiceId::Unspec) => {
-						// accept anything
-						if service==Some(ServiceId::Sdo) {
+
+						if packet_type == Some(PacketType::ASnd) && service == Some(ServiceId::Sdo) {
+
 							if Some(src)!=self.requested_node {
 								trace!("Got SDO from wrong node!");
 								self.db.insert_error("sdo_from_wrong_node",self.requested_node.unwrap(),self.mn_state,self.cn_state[src as usize]);
 							} else {
 								self.db.insert_response("sdo",src,diff,self.mn_state,self.cn_state[src as usize]);
 							}
+
 						} else {
-							trace!("ASnd package in Unspec mode with service_id!=SDO -> Assuming VETH.");
-							self.db.insert_response("veth",src,diff,self.mn_state,self.cn_state[src as usize]);
+
+							assert!(Plkan::is_powerlink(packet));
+							let ts = self.get_timespec(packet)-self.first_ts.unwrap();
+							trace!("Got unexpected Powerlink packet after SoA: [{:?}] {:?}", ts, packet);
+							self.db.insert_error("unexpected_packet_after_soa",self.requested_node.unwrap(),self.mn_state,self.cn_state[src as usize]);
+
 						}
+
+					},
+
+					Some(ServiceId::NmtCommand) => {
+
+						if packet_type == Some(PacketType::ASnd) && service == Some(ServiceId::NmtCommand) {
+
+							if Some(src)!=self.requested_node {
+								warn!("Got NMT command from wrong node!");
+								self.db.insert_error("nmt_from_wrong_node",self.requested_node.unwrap(),self.mn_state,self.cn_state[src as usize]);
+							} else {
+								self.db.insert_response("nmt_command",src,diff,self.mn_state,self.cn_state[src as usize]);
+							}
+
+						} else {
+
+							assert!(Plkan::is_powerlink(packet));
+							let ts = self.get_timespec(packet)-self.first_ts.unwrap();
+							trace!("Got unexpected Powerlink packet after SoA: [{:?}] {:?}", ts, packet);
+							self.db.insert_error("unexpected_packet_after_soa",self.requested_node.unwrap(),self.mn_state,self.cn_state[src as usize]);
+
+						}
+
 					},
 
 					Some(ServiceId::Ident) => {
@@ -215,7 +253,9 @@ impl<'a> Plkan<'a> {
 						}
 					},
 
-					_ => {}
+					_ => {
+						//warn!("Unknown requested service ID: {:?}", self.request_service);
+					}
 
 				}
 			},
@@ -245,13 +285,31 @@ impl<'a> Plkan<'a> {
 			Some(PacketType::SoA) => {
 						
 				assert!(packet.header.caplen>21);
-				let service = ServiceId::from_u8(packet.data[20]);
+				let service_id = packet.data[20];
 				let target = packet.data[21];
-				
-				self.request_type = Some(PacketType::SoA);
-				self.request_service = service;
-				self.requested_node = Some(target);
-				self.request_ts = Some(self.get_timespec(packet));
+				let service = ServiceId::from_u8(service_id);
+
+
+				if let Some(service) = service {
+					
+					if service == ServiceId::NoService {
+						trace!("No Service -> no expectations.");
+					} else {
+
+						self.request_type = Some(PacketType::SoA);
+						self.request_service = if service==ServiceId::NmtRequestInvite {
+							Some(ServiceId::NmtCommand)
+						} else {
+							Some(service)
+						};
+						self.requested_node = Some(target);
+						self.request_ts = Some(self.get_timespec(packet));
+
+					}
+
+				} else {
+					warn!("Unknown requested service ID: {}\n{:?}", service_id, packet);
+				}
 
 			},
 
@@ -271,6 +329,10 @@ impl<'a> Plkan<'a> {
 
 	fn get_timespec(&self, packet: &Packet) -> Timespec {
 		Timespec {sec: packet.header.ts.tv_sec, nsec: packet.header.ts.tv_usec as i32}
+	}
+
+	fn is_powerlink(packet: &Packet) -> bool {
+		packet.header.caplen>=17 && packet.data[12]==0x88 && packet.data[13]==0xab
 	}
 
 }

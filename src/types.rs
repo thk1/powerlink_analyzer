@@ -33,8 +33,11 @@ enum_from_primitive! {
 	#[derive(Debug, PartialEq, Clone, Copy)]
 	#[repr(u8)]
 	pub enum ServiceId {
+		NoService = 0x00,
 		Ident = 0x01,
 		Status = 0x02,
+		NmtRequestInvite = 0x03,
+		NmtCommand = 0x04,
 		Sdo = 0x05,
 		Unspec = 0xFF,
 	}
