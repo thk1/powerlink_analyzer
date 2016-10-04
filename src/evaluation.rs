@@ -65,11 +65,12 @@ impl<'a> Evaluation<'a> {
 		self.print_field("├─Ident","response","type=='ident'","│  ├─","│  └─");
 		self.print_field("├─Status","response","type=='status'","│  ├─","│  └─");
 		self.print_field("├─SDO","response","type=='sdo'","│  ├─","│  └─");
+		self.print_field("├─NMT","response","type=='nmt_command'","│  ├─","│  └─");
 		self.print_field("└─Veth","response","type=='veth'","   ├─","   └─");
 
 	}
 
-	fn print_field(&self, title: &'static str, table: &'static str, where_clause: &'static str, prefix: &'static str, prefix_end: &'static str) {
+	fn print_field(&self, title: &str, table: &str, where_clause: &str, prefix: &str, prefix_end: &str) {
 		
 		if let Ok((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter(table, where_clause.to_owned()) {
 			println_stats!(title,avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);

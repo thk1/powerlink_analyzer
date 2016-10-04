@@ -84,7 +84,7 @@ impl Database {
 		&[&(ns as i64), &state]).unwrap();
 	}
 
-	pub fn insert_response(&self, packet_type: &'static str, node_id: u8, timediff: Duration, mn_state: Option<NmtState>, cn_state: Option<NmtState>) {
+	pub fn insert_response(&self, packet_type: &str, node_id: u8, timediff: Duration, mn_state: Option<NmtState>, cn_state: Option<NmtState>) {
 
 		trace!("Insert PREs");
 		let ns = timediff.num_nanoseconds().expect("Timediff is too large to represent it as nanoseconds. Timediffs this lare probably mean an error.");
@@ -106,7 +106,7 @@ impl Database {
 
 	}
 
-	pub fn insert_error(&self, packet_type: &'static str, node_id: u8, mn_state: Option<NmtState>, cn_state: Option<NmtState>) {
+	pub fn insert_error(&self, packet_type: &str, node_id: u8, mn_state: Option<NmtState>, cn_state: Option<NmtState>) {
 		
 		let cn_state_u8 = match cn_state {
 			Some(s) => Some((s as u8) as i64),
@@ -140,7 +140,7 @@ impl Database {
 	}
 
 	// returns (min,max,avg,jitter_abs,jitter_rel)
-	pub fn get_jitter(&self, table: &'static str, where_clause: String) -> Result<(u64,u64,f64,u64,f64)> {
+	pub fn get_jitter(&self, table: &str, where_clause: String) -> Result<(u64,u64,f64,u64,f64)> {
 		
 		let mut stmt = self.connection.prepare(&format!("
 					SELECT
@@ -172,7 +172,7 @@ impl Database {
 		
 	}
 
-	pub fn get_nodes(&self, table: &'static str, where_clause: String) -> Vec<u8> {
+	pub fn get_nodes(&self, table: &str, where_clause: String) -> Vec<u8> {
 		let mut result = Vec::new();
 		let mut stmt = self.connection.prepare(&format!("SELECT node_id FROM {} WHERE {} GROUP BY node_id",table,where_clause)[..]).unwrap();
 		let node_iter = stmt.query_map(&[], |row| -> u8 {
