@@ -23,6 +23,7 @@ extern crate num;
 extern crate simplelog;
 extern crate rusqlite;
 extern crate getopts;
+extern crate regex;
 
 mod plkan;
 mod types;
@@ -37,6 +38,7 @@ use evaluation::*;
 use getopts::Options;
 use std::env;
 use simplelog::{SimpleLogger,LogLevelFilter};
+use regex::Regex;
 
 fn print_usage(program: &str, opts: Options) {
 	let brief = format!("Usage: {} [options] PCAPNG_FILE", program);
@@ -52,6 +54,7 @@ fn main() {
 
 	let mut opts = Options::new();
 	opts.optflag("h", "help", "print this help menu");
+	opts.optflag("p", "pgftable", "prints master metrics as pgf table");
 
 	let matches = match opts.parse(&args[1..]) {
 		Ok(m) => { m }
@@ -85,7 +88,17 @@ fn main() {
 		}
 		
 		let eval = Evaluation::new(&mut db);
-		eval.print();
+
+		if matches.opt_present("p") {
+			let filename = file_path.to_str().unwrap();
+			let table_name = file_path.file_stem().unwrap().to_str().unwrap();
+			let re = Regex::new(r"[0-9_]").unwrap();
+			let table_name = re.replace_all(table_name, "");
+			eval.print_pgftable(&filename, &table_name);
+		} else {
+			eval.print();
+		}
+
 	}
 
 }

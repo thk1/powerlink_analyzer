@@ -91,6 +91,20 @@ impl<'a> Evaluation<'a> {
 
 	}
 
+	pub fn print_pgftable(&self, file_name: &str, table_name: &str) {
+		println!("% {}", file_name);
+		println!("\\pgfplotstableread{{");
+		println!("x             y      y-min      y-max");
+		if let Ok((min,max,avg,_,_)) = self.db.get_jitter("response", format!("type=='sdo' AND node_id==240")) {
+			println!("sdo   {:>9}  {:>9}  {:>9}", avg as u64, min, max);
+		};
+		if let Ok((min,max,avg,_,_)) = self.db.get_jitter("response", format!("type=='nmt_command' AND node_id==240")) {
+			println!("nmt   {:>9}  {:>9}  {:>9}", avg as u64, min, max);
+		};
+		println!("preq  {:>9}  {:>9}  {:>9}", 0u64, 0u64, 0u64);
+		println!("}}{{\\tbl{}}}", table_name);
+	}
+
 	fn group_digits(n: usize) -> String {
 		let string = n.to_string();
 		let bytes: Vec<_> = string.bytes().rev().collect();
