@@ -63,28 +63,27 @@ fn main() {
 		return;
 	}
 
-	let file_path = if !matches.free.is_empty() {
-		Path::new(&matches.free[0])
-	} else {
-		warn!("No input file given. Using example capture.");
-		Path::new(concat!(env!("CARGO_MANIFEST_DIR"),"/res/example.pcapng"))
-	};
-
-	info!("Loading PCAP file {}.",file_path.to_str().expect("invalid path (UTF-8 error)"));
-
-	let mut cap = Capture::from_file_with_precision(file_path,Precision::Nano).expect("Loading PCAP file failed");
-
-	let mut db = Database::new();
-	
-	{
-		let mut plkan = Plkan::new(&mut db);
-
-		while let Ok(packet) = cap.next() {
-			plkan.process_packet(&packet);
-		}
+	if matches.free.is_empty() {
+		error!("No input file given.");
+		//warn!("No input file given. Using example capture.");
+		//Path::new(concat!(env!("CARGO_MANIFEST_DIR"),"/res/example.pcapng"))
+		return;
 	}
-	
-	{
+
+	for file_path in &matches.free {
+		
+		//info!("Loading PCAP file {}.",file_path);
+		let file_path = Path::new(&file_path);
+		let mut cap = Capture::from_file_with_precision(file_path,Precision::Nano).expect("Loading PCAP file failed");
+		let mut db = Database::new();
+		
+		{
+			let mut plkan = Plkan::new(&mut db);
+			while let Ok(packet) = cap.next() {
+				plkan.process_packet(&packet);
+			}
+		}
+		
 		let eval = Evaluation::new(&mut db);
 		eval.print();
 	}
