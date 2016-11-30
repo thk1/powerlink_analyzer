@@ -55,6 +55,7 @@ fn main() {
 	let mut opts = Options::new();
 	opts.optflag("h", "help", "print this help menu");
 	opts.optflag("p", "pgftable", "prints master metrics as pgf table");
+	opts.optflag("c", "csv", "prints csv");
 
 	let matches = match opts.parse(&args[1..]) {
 		Ok(m) => { m }
@@ -95,8 +96,12 @@ fn main() {
 			let re = Regex::new(r"[0-9_]").unwrap();
 			let table_name = re.replace_all(table_name, "");
 			eval.print_pgftable(&filename, &table_name);
+		} else if matches.opt_present("c") {
+			eval.print_errors::<CsvPrinter>();
+			eval.print_state_changes::<CsvPrinter>();
+			eval.print_stats::<CsvPrinter>();
 		} else {
-			eval.print();
+			eval.print_stats::<StdoutPrinter>();
 		}
 
 	}

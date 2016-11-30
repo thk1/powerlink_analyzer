@@ -27,6 +27,44 @@ macro_rules! println_stats { ( $name:expr, $avg:expr, $min:expr, $max:expr, $jit
 	$jitter_rel)
 ); }
 
+pub trait StatPrinter {
+	fn print_stats_header();
+	fn print_stats(category: &str, node: u8, prefix: &str, min: usize, max: usize, avg: usize, jitter_abs: usize, jitter_rel: f64);
+}
+
+pub struct StdoutPrinter;
+impl StatPrinter for StdoutPrinter {
+	
+	fn print_stats_header() {
+		println!("\nStatistics:");
+	}
+
+	fn print_stats(category: &str, node: u8, prefix: &str, min: usize, max: usize, avg: usize, jitter_abs: usize, jitter_rel: f64) {
+		
+		if category.is_empty() {
+			println_stats!(&format!("{}{}",prefix,node),avg,min,max,jitter_abs,jitter_rel);
+		} else {
+			println_stats!(category,avg,min,max,jitter_abs,jitter_rel);
+		}
+
+	}
+
+}
+
+pub struct CsvPrinter;
+impl StatPrinter for CsvPrinter {
+	
+	fn print_stats_header() {
+		println!("title,min,max,avg,jitter_abs,jitter_rel");
+	}
+
+	fn print_stats(category: &str, node: u8, _: &str, min: usize, max: usize, avg: usize, jitter_abs: usize, jitter_rel: f64) {
+		println!("{},{},{},{},{},{},{},",category,node,min,max,avg,jitter_abs,jitter_rel);
+	}
+
+}
+
+
 pub struct Evaluation<'a> {
 	db: &'a mut Database,
 }
@@ -39,41 +77,44 @@ impl<'a> Evaluation<'a> {
 		}
 	}
 
-	pub fn print(&self) {
-
+	pub fn print_errors<P: StatPrinter>(&self) {
 		println!("\nErrors:");
 		println!("Notice: Missing Ident Responses from [253] (diagnostic device) and missing responses when CN state is Off are regular.");
 		for row in self.db.get_errors() {
 			println!("[{:>3}] {:>3}x {:<30} (CN:{:?} MN:{:?})", row.0, row.4, row.1, row.2, row.3);
 		}
+	}
 
+	pub fn print_state_changes<P: StatPrinter>(&self) {
 		println!("\nState Changes:");
 		for row in self.db.get_state_changes() {
 			println!("{:>5} {:>14}ns [{:>3}] {:?}", Evaluation::group_digits(row.3 as usize),
 				Evaluation::group_digits(row.2 as usize), row.0, row.1);
 		}
+	}
 
+	pub fn print_stats<P: StatPrinter>(&self) {
 
-		println!("\nStatistics:");
+		P::print_stats_header();
 
 		if let Ok((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("soc", "1==1".to_owned()) {
-			println_stats!("Cycle/SoC",avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
+			P::print_stats("Cycle/SoC",0,"",avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
 		};
 
-		self.print_field("Responses","response","1==1","├─","├─");
-		self.print_field("├─PRes","response","type=='pres'","│  ├─","│  └─");
-		self.print_field("├─Ident","response","type=='ident'","│  ├─","│  └─");
-		self.print_field("├─Status","response","type=='status'","│  ├─","│  └─");
-		self.print_field("├─SDO","response","type=='sdo'","│  ├─","│  └─");
-		self.print_field("├─NMT","response","type=='nmt_command'","│  ├─","│  └─");
-		self.print_field("└─Veth","response","type=='veth'","   ├─","   └─");
+		self.print_field::<P>("Responses","response","1==1","├─","├─");
+		self.print_field::<P>("├─PRes","response","type=='pres'","│  ├─","│  └─");
+		self.print_field::<P>("├─Ident","response","type=='ident'","│  ├─","│  └─");
+		self.print_field::<P>("├─Status","response","type=='status'","│  ├─","│  └─");
+		self.print_field::<P>("├─SDO","response","type=='sdo'","│  ├─","│  └─");
+		self.print_field::<P>("├─NMT","response","type=='nmt_command'","│  ├─","│  └─");
+		self.print_field::<P>("└─Veth","response","type=='veth'","   ├─","   └─");
 
 	}
 
-	fn print_field(&self, title: &str, table: &str, where_clause: &str, prefix: &str, prefix_end: &str) {
+	fn print_field<P: StatPrinter>(&self, title: &str, table: &str, where_clause: &str, prefix: &str, prefix_end: &str) {
 		
 		if let Ok((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter(table, where_clause.to_owned()) {
-			println_stats!(title,avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
+			P::print_stats(title,0,"",avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
 		};
 
 		let nodes = self.db.get_nodes(table, where_clause.to_owned());
@@ -85,7 +126,7 @@ impl<'a> Evaluation<'a> {
 				} else {
 					prefix
 				};
-				println_stats!(format!("{}{}",p,node), avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
+				P::print_stats("",*node,p, avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
 			};
 		}
 
