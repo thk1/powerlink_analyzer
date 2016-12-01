@@ -97,10 +97,10 @@ fn main() {
 			let table_name = re.replace_all(table_name, "");
 			eval.print_pgftable(&filename, &table_name);
 		} else if matches.opt_present("c") {
-			eval.print_errors::<CsvPrinter>();
-			eval.print_state_changes::<CsvPrinter>();
 			eval.print_stats::<CsvPrinter>();
 		} else {
+			eval.print_errors::<StdoutPrinter>();
+			eval.print_state_changes::<StdoutPrinter>();
 			eval.print_stats::<StdoutPrinter>();
 		}
 
