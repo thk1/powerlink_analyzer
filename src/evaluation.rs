@@ -146,6 +146,13 @@ impl<'a> Evaluation<'a> {
 		println!("}}{{\\tbl{}}}", table_name);
 	}
 
+	pub fn print_raw(&self, histogram: bool) {
+		let rows = self.db.get_raw("type=='pres'", histogram);
+		for row in rows.iter() {
+			println!("{}", row);
+		}
+	}
+
 	fn group_digits(n: usize) -> String {
 		let string = n.to_string();
 		let bytes: Vec<_> = string.bytes().rev().collect();

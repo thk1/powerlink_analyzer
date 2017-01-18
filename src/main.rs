@@ -55,7 +55,9 @@ fn main() {
 	let mut opts = Options::new();
 	opts.optflag("h", "help", "print this help menu");
 	opts.optflag("p", "pgftable", "prints master metrics as pgf table");
-	opts.optflag("c", "csv", "prints csv");
+	opts.optflag("c", "csv", "prints stats as csv");
+	opts.optflag("r", "raw", "prints raw response times time series as csv");
+	opts.optflag("s", "histogram", "prints raw response times histogram as csv");
 
 	let matches = match opts.parse(&args[1..]) {
 		Ok(m) => { m }
@@ -98,6 +100,10 @@ fn main() {
 			eval.print_pgftable(&filename, &table_name);
 		} else if matches.opt_present("c") {
 			eval.print_stats::<CsvPrinter>();
+		} else if matches.opt_present("r") {
+			eval.print_raw(false);
+		} else if matches.opt_present("s") {
+			eval.print_raw(true);
 		} else {
 			eval.print_errors::<StdoutPrinter>();
 			eval.print_state_changes::<StdoutPrinter>();

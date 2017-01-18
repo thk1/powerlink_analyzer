@@ -172,6 +172,33 @@ impl Database {
 		
 	}
 
+	pub fn get_raw(&self, where_clause: &str, sort: bool) -> Vec<u64>  {
+		let mut result = Vec::new();
+		let order = if sort {
+			"ORDER BY timediff_ns DESC"
+		} else {
+			""
+		};
+
+		let mut stmt = self.connection.prepare(&format!("
+					SELECT
+						timediff_ns
+					FROM response
+					WHERE {}
+					{}
+				",where_clause, order)[..]).unwrap();
+
+		let rows = stmt.query_map(&[], |row| -> u64 {
+			row.get::<i32, i64>(0) as u64
+		}).unwrap();
+
+		for row in rows {
+			result.push(row.unwrap());
+		}
+
+		result
+	}
+
 	pub fn get_nodes(&self, table: &str, where_clause: String) -> Vec<u8> {
 		let mut result = Vec::new();
 		let mut stmt = self.connection.prepare(&format!("SELECT node_id FROM {} WHERE {} GROUP BY node_id",table,where_clause)[..]).unwrap();
