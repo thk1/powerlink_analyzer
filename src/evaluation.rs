@@ -98,7 +98,7 @@ impl<'a> Evaluation<'a> {
 		P::print_stats_header();
 
 		if let Ok((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("soc", "1==1".to_owned()) {
-			P::print_stats("Cycle/SoC",None,"",avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
+			P::print_stats("Cycle/SoC",None,"",min as usize,max as usize,avg as usize,jitter_abs as usize,jitter_rel*100.);
 		};
 
 		self.print_field::<P>("Responses","response","1==1","├─","├─","");
@@ -114,7 +114,7 @@ impl<'a> Evaluation<'a> {
 	fn print_field<P: StatPrinter>(&self, title: &str, table: &str, where_clause: &str, prefix: &str, prefix_end: &str, prefix_title: &str) {
 		
 		if let Ok((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter(table, where_clause.to_owned()) {
-			P::print_stats(title,None,prefix_title,avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
+			P::print_stats(title,None,prefix_title,min as usize,max as usize,avg as usize,jitter_abs as usize,jitter_rel*100.);
 		};
 
 		let nodes = self.db.get_nodes(table, where_clause.to_owned());
@@ -126,7 +126,7 @@ impl<'a> Evaluation<'a> {
 				} else {
 					prefix
 				};
-				P::print_stats(title,Some(*node),p, avg as usize,min as usize,max as usize,jitter_abs as usize,jitter_rel*100.);
+				P::print_stats(title,Some(*node),p,min as usize,max as usize,avg as usize,jitter_abs as usize,jitter_rel*100.);
 			};
 		}
 
