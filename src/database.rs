@@ -175,7 +175,7 @@ impl Database {
 		
 	}
 
-	pub fn get_raw(&self, where_clause: &str, sort: bool) -> Vec<u64>  {
+	pub fn get_raw(&self, where_clause: &str, sort: bool) -> Vec<(u64,String,u8)>  {
 		let mut result = Vec::new();
 		let order = if sort {
 			"ORDER BY timediff_ns DESC"
@@ -185,18 +185,21 @@ impl Database {
 
 		let mut stmt = self.connection.prepare(&format!("
 					SELECT
-						timediff_ns
+						timediff_ns,
+						type,
+						node_id
 					FROM response
 					WHERE {}
 					{}
 				",where_clause, order)[..]).unwrap();
 
-		let rows = stmt.query_map(&[], |row| -> u64 {
-			row.get::<i32, i64>(0) as u64
-		}).unwrap();
-
-		for row in rows {
-			result.push(row.unwrap());
+		let mut rows = stmt.query(&[]).unwrap();
+		while let Some(result_row) = rows.next() {
+			let row = result_row.unwrap();
+			let timediff = row.get::<i32, i64>(0) as u64;
+			let packet_type = row.get::<i32, String>(1);
+			let node_id = row.get::<i32, i64>(2) as u8;
+			result.push((timediff,packet_type,node_id));
 		}
 
 		result

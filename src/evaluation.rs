@@ -149,7 +149,7 @@ impl<'a> Evaluation<'a> {
 	pub fn print_raw(&self, filter: &str,sort: bool) {
 		let rows = self.db.get_raw(filter, sort);
 		for row in rows.iter() {
-			println!("{}", row);
+			println!("{},{},{}", row.0, row.1, row.2);
 		}
 	}
 
