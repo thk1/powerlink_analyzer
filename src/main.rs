@@ -56,8 +56,9 @@ fn main() {
 	opts.optflag("h", "help", "print this help menu");
 	opts.optflag("p", "pgftable", "prints master metrics as pgf table");
 	opts.optflag("c", "csv", "prints stats as csv");
-	opts.optflag("r", "raw", "prints raw response times time series as csv");
-	opts.optflag("s", "histogram", "prints raw response times histogram as csv");
+	opts.optflag("r", "raw", "prints raw response times as csv");
+	opts.optflag("s", "sort", "sort response times (in combination with --raw)");
+	opts.optopt("f", "filter", "EXPERT: filter response times (in combination with --raw)", "SQL_WHERE_CLAUSE");
 
 	let matches = match opts.parse(&args[1..]) {
 		Ok(m) => { m }
@@ -75,6 +76,12 @@ fn main() {
 		//Path::new(concat!(env!("CARGO_MANIFEST_DIR"),"/res/example.pcapng"))
 		return;
 	}
+
+	let filter = if matches.opt_present("f") {
+		matches.opt_str("f").unwrap()
+	} else {
+		"type=='pres'".to_string()
+	};
 
 	for file_path in &matches.free {
 		
@@ -101,9 +108,7 @@ fn main() {
 		} else if matches.opt_present("c") {
 			eval.print_stats::<CsvPrinter>();
 		} else if matches.opt_present("r") {
-			eval.print_raw(false);
-		} else if matches.opt_present("s") {
-			eval.print_raw(true);
+			eval.print_raw(&filter, matches.opt_present("s"));
 		} else {
 			eval.print_errors::<StdoutPrinter>();
 			eval.print_state_changes::<StdoutPrinter>();

@@ -146,8 +146,8 @@ impl<'a> Evaluation<'a> {
 		println!("}}{{\\tbl{}}}", table_name);
 	}
 
-	pub fn print_raw(&self, histogram: bool) {
-		let rows = self.db.get_raw("type=='pres'", histogram);
+	pub fn print_raw(&self, filter: &str,sort: bool) {
+		let rows = self.db.get_raw(filter, sort);
 		for row in rows.iter() {
 			println!("{}", row);
 		}

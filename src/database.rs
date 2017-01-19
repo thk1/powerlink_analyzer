@@ -142,6 +142,9 @@ impl Database {
 	// returns (min,max,avg,jitter_abs,jitter_rel)
 	pub fn get_jitter(&self, table: &str, where_clause: String) -> Result<(u64,u64,f64,u64,f64)> {
 		
+		// note: table and where_clause are not escaed.
+		// however we solely work on temporary databases.
+
 		let mut stmt = self.connection.prepare(&format!("
 					SELECT
 						MIN(timediff_ns) as min,
