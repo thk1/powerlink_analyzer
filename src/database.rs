@@ -27,6 +27,17 @@ pub struct Database {
 	connection: Connection,
 }
 
+pub struct ResponseStats {
+	pub min: i64,
+	pub max: i64,
+	pub avg: f64,
+	pub jitter_abs: i64,
+	pub jitter_rel: f64,
+	pub quartile1: i64,
+	pub median: i64,
+	pub quartile3: i64
+}
+
 impl Database {
 
 	pub fn new() -> Self {
@@ -139,13 +150,33 @@ impl Database {
 
 	}
 
-	// returns (min,max,avg,jitter_abs,jitter_rel)
-	pub fn get_jitter(&self, table: &str, where_clause: String) -> Result<(u64,u64,f64,u64,f64)> {
+	pub fn get_response_stats(&self, table: &str, where_clause: String) -> Result<ResponseStats> {
 		
 		// note: table and where_clause are not escaed.
 		// however we solely work on temporary databases.
 
-		let mut stmt = self.connection.prepare(&format!("
+		let get_percentile = |percentage: &str| -> Result<i64> {
+			
+			let mut stmt_percentile = self.connection.prepare(&format!("
+						SELECT timediff_ns as percentile,
+						FROM {0}
+						WHERE {1}
+						ORDER BY timediff_ns ASC
+						LIMIT 1
+						OFFSET (SELECT
+								COUNT(*)
+								FROM {0}
+								WHERE {1})
+								* {2} - 1;
+					",table,where_clause,percentage)[..]).unwrap();
+
+			let mut query_percentile = stmt_percentile.query(&[])?;
+			let row_percentile = query_percentile.next().expect("no database results")?;
+			let percentile: i64 = row_percentile.get_checked(0)?;
+			Ok(percentile)
+		};
+
+		let mut stmt_aggr = self.connection.prepare(&format!("
 					SELECT
 						MIN(timediff_ns) as min,
 						MAX(timediff_ns) as max,
@@ -153,27 +184,47 @@ impl Database {
 					FROM {}
 					WHERE {}
 				",table,where_clause)[..]).unwrap();
+		let mut query_aggr = stmt_aggr.query(&[])?;
+		let row_aggr = query_aggr.next().expect("no database results")?;
+		
+		let min: i64 = row_aggr.get_checked(0)?;
+		let max: i64 = row_aggr.get_checked(1)?;
+		let avg: f64 = row_aggr.get_checked(2)?;
+		let avg_int = avg as i64;
+		let jitter_abs = cmp::max(avg_int-min,max-avg_int);
 
-		let mut rows = try!(stmt.query(&[]));
+		Ok(ResponseStats {
+			min: min,
+			max: max,
+			avg: avg,
+			jitter_abs: jitter_abs,
+			jitter_rel: jitter_abs as f64 / avg,
+			quartile1: get_percentile("1/4")?,
+			median: get_percentile("1/2")?,
+			quartile3: get_percentile("3/4")?,
+		})
 
-		if let Some(next_result) = rows.next() {
+		//Ok((min as u64,max as u64,avg,jitter_abs as u64,jitter_rel))
 
-			let row = try!(next_result);
-
-			let min: i64 = try!(row.get_checked(0));
-			let max: i64 = try!(row.get_checked(1));
-			let avg: f64 = try!(row.get_checked(2));
-			let avg_int = avg as i64;
-			let jitter_abs = cmp::max(avg_int-min,max-avg_int);
-			let jitter_rel = jitter_abs as f64 / avg;
-				
-			Ok((min as u64,max as u64,avg,jitter_abs as u64,jitter_rel))
-
-		} else {
-			Err(Error::QueryReturnedNoRows)
-		}
+		//} else {
+		//	Err(Error::QueryReturnedNoRows)
+		//}
 		
 	}
+
+/*
+SELECT
+  height AS 'male 90% height'
+FROM table
+WHERE gender='male'
+ORDER BY height ASC
+LIMIT 1
+OFFSET (SELECT
+         COUNT(*)
+        FROM table
+        WHERE gender='male') * 9 / 10 - 1;
+*/
+
 
 	pub fn get_raw(&self, where_clause: &str, sort: bool) -> Vec<(u64,String,u8)>  {
 		let mut result = Vec::new();

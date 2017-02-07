@@ -97,8 +97,8 @@ impl<'a> Evaluation<'a> {
 
 		P::print_stats_header();
 
-		if let Ok((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter("soc", "1==1".to_owned()) {
-			P::print_stats("Cycle/SoC",None,"",min as usize,max as usize,avg as usize,jitter_abs as usize,jitter_rel*100.);
+		if let Ok(stats) = self.db.get_response_stats("soc", "1==1".to_owned()) {
+			P::print_stats("Cycle/SoC",None,"",stats.min as usize,stats.max as usize,stats.avg as usize,stats.jitter_abs as usize,stats.jitter_rel*100.);
 		};
 
 		self.print_field::<P>("Responses","response","1==1","├─","├─","");
@@ -113,20 +113,20 @@ impl<'a> Evaluation<'a> {
 
 	fn print_field<P: StatPrinter>(&self, title: &str, table: &str, where_clause: &str, prefix: &str, prefix_end: &str, prefix_title: &str) {
 		
-		if let Ok((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter(table, where_clause.to_owned()) {
-			P::print_stats(title,None,prefix_title,min as usize,max as usize,avg as usize,jitter_abs as usize,jitter_rel*100.);
+		if let Ok(stats) = self.db.get_response_stats(table, where_clause.to_owned()) {
+			P::print_stats(title,None,prefix_title,stats.min as usize,stats.max as usize,stats.avg as usize,stats.jitter_abs as usize,stats.jitter_rel*100.);
 		};
 
 		let nodes = self.db.get_nodes(table, where_clause.to_owned());
 
 		for (i,node) in nodes.iter().enumerate() {
-			if let Ok((min,max,avg,jitter_abs,jitter_rel)) = self.db.get_jitter(table, format!("{} AND node_id=={}",where_clause,node)) {
+			if let Ok(stats) = self.db.get_response_stats(table, format!("{} AND node_id=={}",where_clause,node)) {
 				let p = if i==nodes.len()-1 {
 					prefix_end
 				} else {
 					prefix
 				};
-				P::print_stats(title,Some(*node),p,min as usize,max as usize,avg as usize,jitter_abs as usize,jitter_rel*100.);
+				P::print_stats(title,Some(*node),p,stats.min as usize,stats.max as usize,stats.avg as usize,stats.jitter_abs as usize,stats.jitter_rel*100.);
 			};
 		}
 
@@ -136,11 +136,11 @@ impl<'a> Evaluation<'a> {
 		println!("% {}", file_name);
 		println!("\\pgfplotstableread{{");
 		println!("x             y      y-min      y-max");
-		if let Ok((min,max,avg,_,_)) = self.db.get_jitter("response", format!("type=='sdo' AND node_id==240")) {
-			println!("sdo   {:>9}  {:>9}  {:>9}", avg as u64, min, max);
+		if let Ok(stats) = self.db.get_response_stats("response", format!("type=='sdo' AND node_id==240")) {
+			println!("sdo   {:>9}  {:>9}  {:>9}", stats.avg as u64, stats.min, stats.max);
 		};
-		if let Ok((min,max,avg,_,_)) = self.db.get_jitter("response", format!("type=='nmt_command' AND node_id==240")) {
-			println!("nmt   {:>9}  {:>9}  {:>9}", avg as u64, min, max);
+		if let Ok(stats) = self.db.get_response_stats("response", format!("type=='nmt_command' AND node_id==240")) {
+			println!("nmt   {:>9}  {:>9}  {:>9}", stats.avg as u64, stats.min, stats.max);
 		};
 		println!("preq  {:>9}  {:>9}  {:>9}", 0u64, 0u64, 0u64);
 		println!("}}{{\\tbl{}}}", table_name);
