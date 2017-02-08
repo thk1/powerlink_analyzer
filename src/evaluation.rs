@@ -18,18 +18,21 @@
 use database::*;
 
 /// Prints a single line in the result table.
-macro_rules! println_stats { ( $name:expr, $avg:expr, $min:expr, $max:expr, $jitter_abs:expr, $jitter_rel:expr  ) => ( println!("{:<9} avg = {:>10}ns  min = {:>10}ns  max = {:>10}ns  jitter_abs = {:>9}ns  jitter_rel = {:>6.2}%",
+macro_rules! println_stats { ( $name:expr, $stats:expr  ) => ( println!("{:<9}  min = {:>10}ns  25% = {:>10}ns  50% = {:>10}ns avg = {:>10}ns  75% = {:>10}ns  max = {:>10}ns  jitter_abs = {:>9}ns  jitter_rel = {:>6.2}%",
 	$name,
-	Evaluation::group_digits($avg),
-	Evaluation::group_digits($min),
-	Evaluation::group_digits($max),
-	Evaluation::group_digits($jitter_abs),
-	$jitter_rel)
+	Evaluation::group_digits($stats.min),
+	Evaluation::group_digits($stats.quartile1),
+	Evaluation::group_digits($stats.median),
+	Evaluation::group_digits($stats.avg.round() as i64),
+	Evaluation::group_digits($stats.quartile3),
+	Evaluation::group_digits($stats.max),
+	Evaluation::group_digits($stats.jitter_abs),
+	$stats.jitter_rel*100f64)
 ); }
 
 pub trait StatPrinter {
 	fn print_stats_header();
-	fn print_stats(category: &str, node: Option<u8>, prefix: &str, min: usize, max: usize, avg: usize, jitter_abs: usize, jitter_rel: f64);
+	fn print_stats(category: &str, node: Option<u8>, prefix: &str, stats: &ResponseStats);
 }
 
 pub struct StdoutPrinter;
@@ -39,12 +42,12 @@ impl StatPrinter for StdoutPrinter {
 		println!("\nStatistics:");
 	}
 
-	fn print_stats(category: &str, node: Option<u8>, prefix: &str, min: usize, max: usize, avg: usize, jitter_abs: usize, jitter_rel: f64) {
+	fn print_stats(category: &str, node: Option<u8>, prefix: &str, stats: &ResponseStats) {
 		
 		if let Some(node) = node {
-			println_stats!(&format!("{}{}",prefix,node),avg,min,max,jitter_abs,jitter_rel);
+			println_stats!(&format!("{}{}",prefix,node),stats);
 		} else {
-			println_stats!(&format!("{}{}",prefix,category),avg,min,max,jitter_abs,jitter_rel);
+			println_stats!(&format!("{}{}",prefix,category),stats);
 		}
 
 	}
@@ -55,11 +58,11 @@ pub struct CsvPrinter;
 impl StatPrinter for CsvPrinter {
 	
 	fn print_stats_header() {
-		println!("title,node,min,max,avg,jitter_abs,jitter_rel");
+		println!("title,node,min,quart1,median,avg,quart3,max,jitter_abs,jitter_rel");
 	}
 
-	fn print_stats(category: &str, node: Option<u8>, _: &str, min: usize, max: usize, avg: usize, jitter_abs: usize, jitter_rel: f64) {
-		println!("{},{},{},{},{},{},{}",category,node.unwrap_or(0),min,max,avg,jitter_abs,jitter_rel);
+	fn print_stats(category: &str, node: Option<u8>, _: &str, stats: &ResponseStats) {
+		println!("{},{},{},{},{},{},{},{},{},{}",category,node.unwrap_or(0),stats.min,stats.quartile1,stats.median,stats.avg,stats.quartile3,stats.max,stats.jitter_abs,stats.jitter_rel);
 	}
 
 }
@@ -88,8 +91,8 @@ impl<'a> Evaluation<'a> {
 	pub fn print_state_changes<P: StatPrinter>(&self) {
 		println!("\nState Changes:");
 		for row in self.db.get_state_changes() {
-			println!("{:>5} {:>14}ns [{:>3}] {:?}", Evaluation::group_digits(row.3 as usize),
-				Evaluation::group_digits(row.2 as usize), row.0, row.1);
+			println!("{:>5} {:>14}ns [{:>3}] {:?}", Evaluation::group_digits(row.3),
+				Evaluation::group_digits(row.2), row.0, row.1);
 		}
 	}
 
@@ -97,8 +100,8 @@ impl<'a> Evaluation<'a> {
 
 		P::print_stats_header();
 
-		if let Ok(stats) = self.db.get_response_stats("soc", "1==1".to_owned()) {
-			P::print_stats("Cycle/SoC",None,"",stats.min as usize,stats.max as usize,stats.avg as usize,stats.jitter_abs as usize,stats.jitter_rel*100.);
+		if let Ok(ref stats) = self.db.get_response_stats("soc", "1==1".to_owned()) {
+			P::print_stats("Cycle/SoC",None,"",stats);
 		};
 
 		self.print_field::<P>("Responses","response","1==1","├─","├─","");
@@ -113,20 +116,20 @@ impl<'a> Evaluation<'a> {
 
 	fn print_field<P: StatPrinter>(&self, title: &str, table: &str, where_clause: &str, prefix: &str, prefix_end: &str, prefix_title: &str) {
 		
-		if let Ok(stats) = self.db.get_response_stats(table, where_clause.to_owned()) {
-			P::print_stats(title,None,prefix_title,stats.min as usize,stats.max as usize,stats.avg as usize,stats.jitter_abs as usize,stats.jitter_rel*100.);
+		if let Ok(ref stats) = self.db.get_response_stats(table, where_clause.to_owned()) {
+			P::print_stats(title, None, prefix_title, stats);
 		};
 
 		let nodes = self.db.get_nodes(table, where_clause.to_owned());
 
 		for (i,node) in nodes.iter().enumerate() {
-			if let Ok(stats) = self.db.get_response_stats(table, format!("{} AND node_id=={}",where_clause,node)) {
+			if let Ok(ref stats) = self.db.get_response_stats(table, format!("{} AND node_id=={}",where_clause,node)) {
 				let p = if i==nodes.len()-1 {
 					prefix_end
 				} else {
 					prefix
 				};
-				P::print_stats(title,Some(*node),p,stats.min as usize,stats.max as usize,stats.avg as usize,stats.jitter_abs as usize,stats.jitter_rel*100.);
+				P::print_stats(title, Some(*node), p, stats);
 			};
 		}
 
@@ -153,7 +156,7 @@ impl<'a> Evaluation<'a> {
 		}
 	}
 
-	fn group_digits(n: usize) -> String {
+	fn group_digits(n: i64) -> String {
 		let string = n.to_string();
 		let bytes: Vec<_> = string.bytes().rev().collect();
 		let chunks: Vec<_> = bytes.chunks(3).map(|chunk| String::from_utf8_lossy(chunk)).collect();

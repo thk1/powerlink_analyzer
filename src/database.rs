@@ -20,7 +20,6 @@ use time::Duration;
 use types::*;
 use std::cmp;
 use enum_primitive::FromPrimitive;
-use rusqlite::Error;
 use rusqlite::Result;
 
 pub struct Database {
@@ -158,7 +157,7 @@ impl Database {
 		let get_percentile = |percentage: &str| -> Result<i64> {
 			
 			let mut stmt_percentile = self.connection.prepare(&format!("
-						SELECT timediff_ns as percentile,
+						SELECT timediff_ns as percentile
 						FROM {0}
 						WHERE {1}
 						ORDER BY timediff_ns ASC
