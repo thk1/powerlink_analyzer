@@ -53,8 +53,11 @@ impl<'a> Plkan<'a> {
 
 	pub fn process_packet(&mut self, packet: &Packet) {
 		
-		if self.first_ts.is_none() {
+		if let Some(first_ts) = self.first_ts {
+			self.db.notify_packet(self.get_timespec(packet) - first_ts);
+		} else {
 			self.first_ts = Some(self.get_timespec(packet));
+			self.db.notify_packet(Duration::zero());
 		}
 
 		self.packet_id += 1;

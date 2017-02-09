@@ -80,6 +80,11 @@ impl<'a> Evaluation<'a> {
 		}
 	}
 
+	pub fn print_metadata<P: StatPrinter>(&self) {
+		println!("\nTotal capture time: {}s", self.db.get_total_time().num_milliseconds() as f64 / 1000f64);
+		println!("Total number of packets: {}", self.db.get_total_num_packets());
+	}
+
 	pub fn print_errors<P: StatPrinter>(&self) {
 		println!("\nErrors:");
 		println!("Notice: Missing Ident Responses from [253] (diagnostic device) and missing responses when CN state is Off are regular.");

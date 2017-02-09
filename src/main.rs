@@ -110,6 +110,7 @@ fn main() {
 		} else if matches.opt_present("r") {
 			eval.print_raw(&filter, matches.opt_present("s"));
 		} else {
+			eval.print_metadata::<StdoutPrinter>();
 			eval.print_errors::<StdoutPrinter>();
 			eval.print_state_changes::<StdoutPrinter>();
 			eval.print_stats::<StdoutPrinter>();

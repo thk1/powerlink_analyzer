@@ -21,9 +21,12 @@ use types::*;
 use std::cmp;
 use enum_primitive::FromPrimitive;
 use rusqlite::Result;
+use std::cell::Cell;
 
 pub struct Database {
 	connection: Connection,
+	total_time: Cell<Duration>,
+	total_num_packets: Cell<usize>
 }
 
 pub struct ResponseStats {
@@ -77,7 +80,24 @@ impl Database {
 				packet_id		INTEGER NOT NULL
 			)", &[]).unwrap();
 
-		return Database { connection: conn }
+		return Database {
+			connection: conn,
+			total_time: Cell::new(Duration::zero()),
+			total_num_packets: Cell::new(0)
+		}
+	}
+
+	pub fn notify_packet(&self, duration_since_start: Duration) {
+		self.total_time.set(duration_since_start);
+		self.total_num_packets.set(self.total_num_packets.get()+1);
+	}
+
+	pub fn get_total_time(&self) -> Duration {
+		self.total_time.get()
+	}
+
+	pub fn get_total_num_packets(&self) -> usize {
+		self.total_num_packets.get()
 	}
 
 	pub fn insert_soc(&self, timediff: Duration, mn_state: Option<NmtState>) {
