@@ -69,9 +69,11 @@ impl<'a> Plkan<'a> {
 			} else {
 				trace!("Got non-Powerlink packet, but VETH is not expected: {:?}", packet);
 				// CN state has no meaning here.
-				self.db.insert_error("unexpected_veth",self.requested_node.unwrap(),self.mn_state,None);
+				match self.requested_node {
+					Some (node) => self.db.insert_error("unexpected_veth",node,self.mn_state,None),
+					None        => self.db.insert_error("interference",0,self.mn_state,None),
+				}
 			}
-
 		} else {
 
 			assert!(packet.header.caplen>16);
